@@ -4,6 +4,13 @@ import hashlib
 import logging
 import os
 
+from cloud_storage import (
+    CloudStorageError,
+    DeleteError,
+    InfoRetrievalError,
+    UploadError,
+)
+
 logger = logging.getLogger(__name__)
 
 BUFFER_SIZE = 65536
@@ -35,6 +42,9 @@ def get_local_files(local_folder):
 
     Returns:
         Словарь {имя_файла: md5_хеш}.
+
+    Raises:
+        OSError: При ошибке чтения папки или файла.
     """
     local_files = {}
     for filename in os.listdir(local_folder):
@@ -79,7 +89,7 @@ def find_modified_files(local_files, cloud_files):
 
 
 def find_deleted_files(local_files, cloud_files):
-    """Определение удалённых файлов (есть в облаке, но нет локально).
+    """Определение удалённых файлов (есть в облаке, нет локально).
 
     Args:
         local_files: Словарь локальных файлов {имя: md5}.
@@ -103,9 +113,11 @@ def upload_new_files(storage, local_folder, new_files):
         file_path = os.path.join(local_folder, filename)
         try:
             storage.load(file_path)
-        except Exception as error:
+        except UploadError as error:
             logger.error(
-                "Ошибка загрузки файла '%s': %s", filename, error
+                "Ошибка загрузки файла '%s': %s",
+                filename,
+                error,
             )
 
 
@@ -121,9 +133,11 @@ def reload_modified_files(storage, local_folder, modified_files):
         file_path = os.path.join(local_folder, filename)
         try:
             storage.reload(file_path)
-        except Exception as error:
+        except UploadError as error:
             logger.error(
-                "Ошибка перезаписи файла '%s': %s", filename, error
+                "Ошибка перезаписи файла '%s': %s",
+                filename,
+                error,
             )
 
 
@@ -137,9 +151,11 @@ def delete_removed_files(storage, deleted_files):
     for filename in deleted_files:
         try:
             storage.delete(filename)
-        except Exception as error:
+        except DeleteError as error:
             logger.error(
-                "Ошибка удаления файла '%s': %s", filename, error
+                "Ошибка удаления файла '%s': %s",
+                filename,
+                error,
             )
 
 
@@ -158,7 +174,7 @@ def synchronize(storage, local_folder):
 
     try:
         cloud_files = storage.get_info()
-    except Exception as error:
+    except InfoRetrievalError as error:
         logger.error(
             "Ошибка получения данных из хранилища: %s", error
         )
@@ -173,7 +189,8 @@ def synchronize(storage, local_folder):
     delete_removed_files(storage, deleted_files)
 
     logger.info(
-        "Синхронизация завершена. Новых: %d, изменённых: %d, удалённых: %d.",
+        "Синхронизация завершена. "
+        "Новых: %d, изменённых: %d, удалённых: %d.",
         len(new_files),
         len(modified_files),
         len(deleted_files),

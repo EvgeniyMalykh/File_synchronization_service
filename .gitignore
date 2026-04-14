@@ -1,0 +1,19 @@
+# Виртуальное окружение
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Конфигурация с токеном
+config.ini
+
+# Логи
+*.log
+
+# IDE
+.idea/
+*.swp
+*.swo

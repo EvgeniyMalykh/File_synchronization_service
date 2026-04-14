@@ -6,7 +6,7 @@ import os
 import sys
 import time
 
-from cloud_storage import YandexDiskStorage
+from cloud_storage import FolderCreationError, YandexDiskStorage
 from sync import synchronize
 
 CONFIG_FILE = "config.ini"
@@ -20,6 +20,10 @@ def read_config(config_path):
 
     Returns:
         Словарь с параметрами конфигурации.
+
+    Raises:
+        configparser.Error: При ошибке чтения конфигурации.
+        KeyError: При отсутствии обязательного параметра.
     """
     config = configparser.ConfigParser()
     config.read(config_path)
@@ -114,7 +118,8 @@ def main():
     logger = logging.getLogger(__name__)
     logger.info("Программа запущена.")
     logger.info(
-        "Синхронизируемая папка: '%s'.", settings["local_folder"]
+        "Синхронизируемая папка: '%s'.",
+        settings["local_folder"],
     )
 
     storage = YandexDiskStorage(
@@ -123,10 +128,9 @@ def main():
 
     try:
         storage.ensure_folder_exists()
-    except Exception as error:
-        print(
-            f"Ошибка доступа к облачному хранилищу: {error}. "
-            "Проверьте параметр 'token' в config.ini."
+    except FolderCreationError as error:
+        logger.error(
+            "Ошибка доступа к облачному хранилищу: %s", error
         )
         sys.exit(1)
 
